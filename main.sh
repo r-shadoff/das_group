@@ -94,5 +94,11 @@ high_variance_genes <- cancer_df_filtered %>%
   summarise(var_read_count = var(read_count)) %>% # calculate read count variance
   filter(var_read_count > variance_threshold) %>% # compares variance to threshold
   pull(gene_name) # pulls gene names that correspond with variances > threshold
+# ----- Plot 1
+# ----- Plot 2
+
+# ----- Table
+
+# ----- Plot 3
 
 print(length(high_variance_genes))
