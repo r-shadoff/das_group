@@ -155,18 +155,17 @@ most_sig_genes <- DESeq_results_df %>%
 
 # Plot 1: Volcano Plot
 
-ggplot(DESeq_results_df, aes(x = log2FoldChange, y = -log10(padj), color = expression)) +
-  geom_point(alpha = 0.8, size = 2) +
-  scale_color_manual(values = c("Overexpressed" = "red", "Underexpressed" = "blue")) +
+ggplot(DESeq_results_df, aes(x = log2FoldChange, y = -log10(padj), color = padj)) +
+  geom_point(alpha = 0.75, size = 2) +
+  scale_color_viridis_c(option = "mako", direction = 1, limits = c(0,0.05)) + 
   theme_minimal() +
   labs(
-    title = "Volcano Plot",
     x = "Log2 Fold Change",
     y = "-Log10 Adjusted p-value",
-    colour = "Expression Status"
+    colour = "Adjusted p-value"
   ) +
-  geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "black") +  # FC threshold lines
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black") + # p-value threshold line
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "black", size =0.3) +  # FC threshold lines
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", size = 0.3) +
   geom_text_repel(data = most_sig_genes, aes(label = rownames(most_sig_genes)), size = 2, colour = 'black')
 
 # Plot 2
