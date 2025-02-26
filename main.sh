@@ -168,7 +168,37 @@ ggplot(DESeq_results_df, aes(x = log2FoldChange, y = -log10(padj), color = padj)
   geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", size = 0.3) +
   geom_text_repel(data = most_sig_genes, aes(label = rownames(most_sig_genes)), size = 2, colour = 'black')
 
-# Plot 2
+# Plot 2 : PCA Analysis
+# Perform variance stabilizing transformation (VST) on the count data
+vsd <- vst(dds, blind = FALSE)
+
+# Get the transformed data for PCA
+pca_data <- plotPCA(vsd, intgroup = c("day_number"), returnData = TRUE)
+
+# Create the PCA plot
+ggplot(pca_data, aes(PC1, PC2, color = day_number, shape = day_number, label = rownames(pca_data))) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_text_repel(size = 3, color = "black") +
+  scale_color_manual(values = c("D0" = "blue", "D6" = "red")) +  # keeping with the color scheme
+  labs(
+    title = "PCA of Gene Expression by Day Number", 
+    x = "Principal Component 1", 
+    y = "Principal Component 2", 
+    color = "Day", shape = "Day",
+    caption = "Figure 1: PCA plot of gene expression profiles colored by day number (D0 and D6). Points represent individual samples, with day_number used to distinguish between groups."
+    ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.text = element_text(size = 12),
+    plot.caption = element_text(size = 10, face = "italic", hjust = 0.5)
+    )
+  # annotate("text", x = -50, y = 100, size = 4, hjust = 0, label = "Figure 1: PCA plot of gene expression profiles colored by day number (D0 and D6). Points represent individual samples, with day_number used to distinguish between groups. The separation along PC1 and PC2 indicates variation in gene expression between the time points.")
+  # annotate("text", x = 0, y = -80, size = 4, hjust = 0.5, 
+  #           label = "Figure 1: PCA plot of gene expression profiles colored by day number (D0 and D6).\nPoints represent individual samples, with day_number used to distinguish between groups. \nThe separation along PC1 and PC2 indicates variation in gene expression between the time points.")
+  # 
+
 # Plot 3? 
 # Table of GSEA results 
 
