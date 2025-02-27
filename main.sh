@@ -5,6 +5,9 @@ library(stringr)
 library(ggplot2)
 library(ggrepel)
 library(DESeq2)
+library(tidyr)
+library(pheatmap)
+library(tibble)
 
 # ----- Import Data
 customized_read_tsv <- function(file){
@@ -199,6 +202,52 @@ ggplot(pca_data, aes(PC1, PC2, color = day_number, shape = day_number, label = r
   #           label = "Figure 1: PCA plot of gene expression profiles colored by day number (D0 and D6).\nPoints represent individual samples, with day_number used to distinguish between groups. \nThe separation along PC1 and PC2 indicates variation in gene expression between the time points.")
   # 
 
-# Plot 3? 
+# Plot 3: Heatmap 
+
+# aggregate data to get mean read count per gene per day
+deg_data <- cancer_df_filtered %>%
+  group_by(gene_name, day_number) %>%
+  summarise(mean_read_count = mean(read_count), .groups = 'drop') %>%
+  spread(key = day_number, value = mean_read_count, fill = 0)
+
+# ensure D0 and D6 exist
+if (!all(c("D0", "D6") %in% colnames(deg_data))) {
+  stop("Error: D0 or D6 column missing. Check your data.")
+}
+
+# calculate log fold change (D6 vs D0)
+deg_data <- deg_data %>%
+  mutate(logFC = log2(D6 + 1) - log2(D0 + 1)) %>%
+  arrange(desc(abs(logFC)))  # Sort by highest absolute logFC
+
+# select top 20 DEGs
+top_20_genes <- head(deg_data, 20)
+
+# prepare matrix for heatmap: Aggregate read_count for each gene_name and sample_id
+heatmap_data <- cancer_df_filtered %>%
+  filter(gene_name %in% top_20_genes$gene_name) %>%
+  group_by(gene_name, sample_id) %>%
+  summarise(total_read_count = sum(read_count), .groups = 'drop') %>%
+  spread(key = sample_id, value = total_read_count, fill = 0) 
+
+# Ccnvert gene names to rownames
+heatmap_matrix <- column_to_rownames(heatmap_data, var = "gene_name")
+
+# convert to matrix
+heatmap_matrix <- as.matrix(heatmap_matrix)
+
+# log transform counts
+heatmap_matrix <- log2(heatmap_matrix + 1)
+
+# generate heatmap with custom blue and brown color palette and axis labels
+pheatmap(heatmap_matrix, scale = "row", clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean", clustering_method = "complete",
+         color = colorRampPalette(c("brown", "white", "blue"))(50),  # Blue and Brown color palette, colour-blind friendly 
+         main = "Top 20 Differentially Expressed Genes",
+         labels_row = top_20_genes$gene_name,  # label y-axis with gene names
+         labels_col = colnames(heatmap_matrix), # Llbel x-axis with sample ids
+         fontsize_row = 8,  # adjust row label size
+         fontsize_col = 8)  # adjust column label size
+
 # Table of GSEA results 
 
