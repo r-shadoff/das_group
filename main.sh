@@ -242,10 +242,10 @@ heatmap_matrix <- log2(heatmap_matrix + 1)
 # generate heatmap with custom blue and brown color palette and axis labels
 pheatmap(heatmap_matrix, scale = "row", clustering_distance_rows = "euclidean",
          clustering_distance_cols = "euclidean", clustering_method = "complete",
-         color = colorRampPalette(c("brown", "white", "blue"))(50),  # Blue and Brown color palette, colour-blind friendly 
+         color = colorRampPalette(c("brown", "white", "blue"))(50),  # blue and brown color palette, colour-blind friendly 
          main = "Top 20 Differentially Expressed Genes",
          labels_row = top_20_genes$gene_name,  # label y-axis with gene names
-         labels_col = colnames(heatmap_matrix), # Llbel x-axis with sample ids
+         labels_col = colnames(heatmap_matrix), # label x-axis with sample ids
          fontsize_row = 8,  # adjust row label size
          fontsize_col = 8)  # adjust column label size
 
