@@ -250,4 +250,28 @@ pheatmap(heatmap_matrix, scale = "row", clustering_distance_rows = "euclidean",
          fontsize_col = 8)  # adjust column label size
 
 # Table of GSEA results 
+# Filter for upregulated and downregulated genes
+upregulated_genes <- DESeq_results_df %>%
+  filter(padj < 0.05 & log2FoldChange > 1) %>%
+  arrange(padj)
 
+downregulated_genes <- DESeq_results_df %>%
+  filter(padj < 0.05 & log2FoldChange < -1) %>%
+  arrange(padj)
+
+# Combine upregulated and downregulated genes into one gsea table
+gsea_results <- bind_rows(
+  upregulated_genes %>%
+    mutate(regulation = "Upregulated"),
+  downregulated_genes %>%
+    mutate(regulation = "Downregulated")
+)
+# str(gsea_results) # to check column names
+
+# Select relevant columns for the GSEA table
+gsea_table <- gsea_results %>%
+  rownames_to_column("gene_name") %>%
+  select(gene_name, log2FoldChange, padj, regulation)
+
+# View the gsea table
+head(gsea_table)
