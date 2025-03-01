@@ -275,3 +275,44 @@ gsea_table <- gsea_results %>%
 
 # View the gsea table
 head(gsea_table)
+
+# Convert gene symbols to Entrez IDs for GSEA
+# gene_conversion <- bitr(gsea_results$gene_name, fromType = "SYMBOL", 
+#                         toType = "ENTREZID", OrgDb = org.Hs.eg.db)
+# 
+# gsea_results <- gsea_results %>%
+#   rownames_to_column(var = "gene_name")
+# gene_conversion <- gene_conversion %>%
+#   rownames_to_column(var = "SYMBOL")
+# 
+# # Merge with DESeq results
+# gsea_gene_list <- gsea_results %>%
+#   inner_join(gene_conversion, by = c("gene_name" = "SYMBOL")) %>%
+#   select(ENTREZID, log2FoldChange) %>%
+#   arrange(desc(log2FoldChange))
+# 
+# 
+# # Convert to named numeric vector for GSEA
+# gene_vector <- setNames(gsea_gene_list$log2FoldChange, gsea_gene_list$ENTREZID)
+# 
+# # Perform GSEA (Gene Ontology - Biological Processes)
+# gsea_go <- gseGO(geneList = gene_vector,
+#                  OrgDb = org.Hs.eg.db,
+#                  ont = "BP",  # Biological Process
+#                  nPerm = 1000,
+#                  minGSSize = 10,
+#                  maxGSSize = 500,
+#                  pvalueCutoff = 0.05,
+#                  verbose = FALSE)
+# 
+# # Convert GSEA results into a table
+# gsea_go_table <- as.data.frame(gsea_go@result) %>%
+#   select(ID, Description, NES, p.adjust, core_enrichment) %>%
+#   arrange(p.adjust)
+# 
+# # View the GSEA table
+# head(gsea_go_table)
+# dim(gsea_go_table)
+# 
+# # Visualize GSEA results
+# dotplot(gsea_go, showCategory = 10) + ggtitle("GSEA - GO Biological Processes")
