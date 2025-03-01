@@ -251,68 +251,97 @@ pheatmap(heatmap_matrix, scale = "row", clustering_distance_rows = "euclidean",
 
 # Table of GSEA results 
 # Filter for upregulated and downregulated genes
+# Filter for upregulated and downregulated genes
 upregulated_genes <- DESeq_results_df %>%
   filter(padj < 0.05 & log2FoldChange > 1) %>%
+  rownames_to_column("gene_name") %>%
   arrange(padj)
 
 downregulated_genes <- DESeq_results_df %>%
   filter(padj < 0.05 & log2FoldChange < -1) %>%
+  rownames_to_column("gene_name") %>%
   arrange(padj)
 
-# Combine upregulated and downregulated genes into one gsea table
+# Combine upregulated and downregulated genes into one GSEA table
 gsea_results <- bind_rows(
-  upregulated_genes %>%
-    mutate(regulation = "Upregulated"),
-  downregulated_genes %>%
-    mutate(regulation = "Downregulated")
+  upregulated_genes %>% mutate(regulation = "Upregulated"),
+  downregulated_genes %>% mutate(regulation = "Downregulated")
 )
-# str(gsea_results) # to check column names
 
-# Select relevant columns for the GSEA table
-gsea_table <- gsea_results %>%
-  rownames_to_column("gene_name") %>%
-  select(gene_name, log2FoldChange, padj, regulation)
-
-# View the gsea table
-head(gsea_table)
+# Ensure gene names are correct before conversion
+# Make sure gene_name column exists and contains proper gene symbols
+gsea_results <- gsea_results %>% 
+  filter(!is.na(gene_name) & gene_name != "")
 
 # Convert gene symbols to Entrez IDs for GSEA
-# gene_conversion <- bitr(gsea_results$gene_name, fromType = "SYMBOL", 
-#                         toType = "ENTREZID", OrgDb = org.Hs.eg.db)
-# 
-# gsea_results <- gsea_results %>%
-#   rownames_to_column(var = "gene_name")
-# gene_conversion <- gene_conversion %>%
-#   rownames_to_column(var = "SYMBOL")
-# 
-# # Merge with DESeq results
-# gsea_gene_list <- gsea_results %>%
-#   inner_join(gene_conversion, by = c("gene_name" = "SYMBOL")) %>%
-#   select(ENTREZID, log2FoldChange) %>%
-#   arrange(desc(log2FoldChange))
-# 
-# 
-# # Convert to named numeric vector for GSEA
-# gene_vector <- setNames(gsea_gene_list$log2FoldChange, gsea_gene_list$ENTREZID)
-# 
-# # Perform GSEA (Gene Ontology - Biological Processes)
-# gsea_go <- gseGO(geneList = gene_vector,
-#                  OrgDb = org.Hs.eg.db,
-#                  ont = "BP",  # Biological Process
-#                  nPerm = 1000,
-#                  minGSSize = 10,
-#                  maxGSSize = 500,
-#                  pvalueCutoff = 0.05,
-#                  verbose = FALSE)
-# 
-# # Convert GSEA results into a table
-# gsea_go_table <- as.data.frame(gsea_go@result) %>%
-#   select(ID, Description, NES, p.adjust, core_enrichment) %>%
-#   arrange(p.adjust)
-# 
-# # View the GSEA table
-# head(gsea_go_table)
-# dim(gsea_go_table)
-# 
-# # Visualize GSEA results
-# dotplot(gsea_go, showCategory = 10) + ggtitle("GSEA - GO Biological Processes")
+# Note: This requires the org.Hs.eg.db package to be loaded
+library(org.Hs.eg.db)
+library(clusterProfiler)
+
+# Use tryCatch to handle potential conversion errors
+gene_conversion <- tryCatch({
+  bitr(gsea_results$gene_name, 
+       fromType = "SYMBOL",
+       toType = "ENTREZID", 
+       OrgDb = org.Hs.eg.db)
+}, error = function(e) {
+  message("Error in gene ID conversion: ", e$message)
+  return(data.frame(SYMBOL = character(0), ENTREZID = character(0)))
+})
+
+# Check if conversion was successful
+if(nrow(gene_conversion) == 0) {
+  stop("Gene ID conversion failed. Check gene symbols.")
+}
+
+# Check and report unmapped genes
+mapped_genes <- gene_conversion$SYMBOL
+unmapped_genes <- gsea_results$gene_name[!gsea_results$gene_name %in% mapped_genes]
+if(length(unmapped_genes) > 0) {
+  message(paste("Number of unmapped genes:", length(unmapped_genes)))
+  message("First few unmapped genes:")
+  print(head(unmapped_genes))
+}
+
+
+gsea_gene_list <- merge(gsea_results, gene_conversion, 
+                        by.x = "gene_name", by.y = "SYMBOL")
+gsea_gene_list <- gsea_gene_list[, c("ENTREZID", "log2FoldChange")]
+
+if(nrow(gsea_gene_list) < 10) {
+    stop("Too few genes mapped to Entrez IDs. GSEA cannot proceed.")
+ }
+gsea_gene_list <- gsea_gene_list[order(gsea_gene_list$log2FoldChange, decreasing = TRUE), ]
+gene_vector <- setNames(gsea_gene_list$log2FoldChange, gsea_gene_list$ENTREZID)
+
+
+# Perform GSEA (Gene Ontology - Biological Processes)
+gsea_go <- gseGO(geneList = gene_vector,
+                 OrgDb = org.Hs.eg.db,
+                 ont = "BP",  # Biological Process
+                 # nPerm = 1000,
+                 minGSSize = 5, # only gene sets containing at least 5 genes will be considered
+                 maxGSSize = 1000, # maximum number of genes allowed in a gene set
+                 pvalueCutoff = 0.2,  # 0.05 returned 0 obs ; 0.2 gave 8 obs  
+                 verbose = TRUE) # detailed output
+# library(stats) # gsea go errors rectify
+
+# Check if GSEA analysis returned results
+if(is.null(gsea_go) || length(gsea_go@result) == 0) {
+  message("GSEA analysis did not return any significant results.")
+} else {
+  # Convert GSEA results into a table
+  gsea_go_table <- as.data.frame(gsea_go@result) %>%
+    select(ID, Description, NES, p.adjust, core_enrichment) %>%
+    arrange(p.adjust)
+  
+  # View the GSEA table
+  print(head(gsea_go_table))
+  print(dim(gsea_go_table))
+  
+  # Visualize GSEA results
+  dotplot(gsea_go, showCategory = 10) + 
+    ggtitle("GSEA - GO Biological Processes") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+}
+
