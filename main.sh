@@ -8,6 +8,7 @@ library(DESeq2)
 library(tidyr)
 library(pheatmap)
 library(tibble)
+library(viridis)
 
 # ----- Import Data
 customized_read_tsv <- function(file){
