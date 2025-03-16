@@ -198,10 +198,6 @@ ggplot(pca_data, aes(PC1, PC2, color = day_number, shape = day_number, label = r
     legend.text = element_text(size = 12),
     plot.caption = element_text(size = 10, face = "italic", hjust = 0.5)
     )
-  # annotate("text", x = -50, y = 100, size = 4, hjust = 0, label = "Figure 1: PCA plot of gene expression profiles colored by day number (D0 and D6). Points represent individual samples, with day_number used to distinguish between groups. The separation along PC1 and PC2 indicates variation in gene expression between the time points.")
-  # annotate("text", x = 0, y = -80, size = 4, hjust = 0.5, 
-  #           label = "Figure 1: PCA plot of gene expression profiles colored by day number (D0 and D6).\nPoints represent individual samples, with day_number used to distinguish between groups. \nThe separation along PC1 and PC2 indicates variation in gene expression between the time points.")
-  # 
 
 # Plot 3: Heatmap 
 
